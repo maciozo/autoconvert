@@ -24,10 +24,16 @@ removeOld = True
 # Set to os.cpu_count() for best converstion speed. Set to a lower value to reduce resource usage when converting.
 numberOfThreads = os.cpu_count()
 
+if (sys.version_info[0] < 3):
+    sys.exit("Minimum Python version 3.5 is required")
+if (sys.version_info[1] < 5):
+    sys.exit("Minimum Python version 3.5 is required")
+
 files = queue.Queue()
 toPrint = queue.Queue()
 cwd = os.getcwd()
 busyThreads = []
+FNULL = open(os.devnull, 'w')
 
 def main():
     threads = []
@@ -81,7 +87,6 @@ def main():
     
 def worker(threadID):
     print("Worker %i started" % threadID)
-    FNULL = open(os.devnull, 'w')
     while (1):
         try:
             busyThreads[threadID] = False
@@ -93,30 +98,30 @@ def worker(threadID):
             
             if onDuplicate == 0: # Skip
                 if (not os.path.isfile(file.replace("%s_" % type, "mp3"))):
-                    subprocess.run(["ffmpeg.exe", "-i", file, "-c:a", newCodec, "-b:a", bitrate, "-ar", samplerate, file.replace("%s_" % type, newExtenstion)], stdout=FNULL, stderr=subprocess.STDOUT)
+                    subprocess.run(["ffmpeg.exe", "-i", file, "-c:a", newCodec, "-b:a", bitrate, "-ar", samplerate, file.replace("%s_" % type, newExtension)], stdout=FNULL, stderr=subprocess.STDOUT)
                     toPrint.put("Thread %i: Done" % threadID)
                 else:
-                    toPrint.put("Thread %i: %s already exists" % (threadID, file.replace("%s_" % type, newExtenstion).replace(cwd, "")))
+                    toPrint.put("Thread %i: %s already exists" % (threadID, file.replace("%s_" % type, newExtension).replace(cwd, "")))
                 if removeOld:
                     os.remove(file)
                     
             elif onDuplicate == 1: # Rename
-                if os.path.isfile(file.replace("%s_" % type, newExtenstion)):
+                if os.path.isfile(file.replace("%s_" % type, newExtension)):
                     fnumber = 1
-                    while os.path.isfile(file.replace("%s_" % type, newExtenstion).replace(".%s" % newExtenstion, " (%i).%s" % (fnumber, newExtenstion))):
+                    while os.path.isfile(file.replace("%s_" % type, newExtension).replace(".%s" % newExtension, " (%i).%s" % (fnumber, newExtension))):
                         fnumber += 1
                     oldFile = file
-                    newFile = file.replace("%s_" % type, "mp3").replace(".%s" % newExtenstion, " (%i).%s" % (fnumber, newExtenstion))
+                    newFile = file.replace("%s_" % type, "mp3").replace(".%s" % newExtension, " (%i).%s" % (fnumber, newExtension))
                 else:
                     oldFile = file
-                    newFile = file.replace("%s_" % type, newExtenstion)
+                    newFile = file.replace("%s_" % type, newExtension)
                 subprocess.run(["ffmpeg.exe", "-i", oldFile, "-c:a", newCodec, "-b:a", bitrate, "-ar", samplerate, newFile], stdout=FNULL, stderr=subprocess.STDOUT)
                 toPrint.put("Thread %i: Done" % threadID)
                 if removeOld:
                     os.remove(oldFile)
                 
             elif onDuplicate == 2: # Overwrite
-                subprocess.run(["ffmpeg.exe", "-i", file, "-c:a", newCodec, "-b:a", bitrate, "-ar", samplerate, "-y", file.replace("%s_" % type, newExtenstion)], stdout=FNULL, stderr=subprocess.STDOUT)
+                subprocess.run(["ffmpeg.exe", "-i", file, "-c:a", newCodec, "-b:a", bitrate, "-ar", samplerate, "-y", file.replace("%s_" % type, newExtension)], stdout=FNULL, stderr=subprocess.STDOUT)
                 toPrint.put("Thread %i: Done" % threadID)
                 if removeOld:
                     os.remove(file)
